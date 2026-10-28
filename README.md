@@ -18,15 +18,15 @@ All data shown is synthetic.
 
 **Incident investigation (INC-3, active with a firing alert):** metrics against thresholds, the alert and detection method, a timeline, and searchable structured logs.
 
-![Incident investigation view for INC-3, showing breaching metrics, a firing alert, a timeline, and filterable logs](docs/screenshots/incident-investigation.png)
+![Incident investigation view for INC-3, showing breaching metrics, a firing alert, a timeline, and filterable logs](docs/incident-investigation.png)
 
 **DORA metrics:** four charts from 72 synthetic deployments, each with a rating (Elite, High, Medium, or Low) and its rating bands.
 
-![DORA metrics tab showing deployment frequency, lead time, change failure rate, and mean time to restore with ratings](docs/screenshots/dora-metrics.png)
+![DORA metrics tab showing deployment frequency, lead time, change failure rate, and mean time to restore with ratings](docs/dora-metrics.png)
 
 **Error budgets:** four SLOs in different states, each with a recommendation. The account balance budget is exhausted and shows how far over it is.
 
-![Error budgets tab showing At risk, Healthy, Healthy, and Exhausted budgets with recommendations](docs/screenshots/error-budgets.png)
+![Error budgets tab showing At risk, Healthy, Healthy, and Exhausted budgets with recommendations](docs/error-budgets.png)
 
 ## Problem Statement
 During an incident, engineers lose time moving between monitoring dashboards, runbooks, contact lists, and old postmortems. In a bank, the cost is higher: slow detection means failed payments, regulatory notifications, and a shrinking error budget that should be steering release decisions. Teams also tend to treat reliability data and delivery data as separate worlds, even though a bad release is often the cause of the outage.
