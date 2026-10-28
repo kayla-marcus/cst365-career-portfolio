@@ -1,0 +1,13 @@
+{
+  "name": "meridian-sre-dashboard",
+  "version": "0.1.0",
+  "description": "Portfolio prototype: SRE incident, error budget, and DORA dashboard on synthetic banking data",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "data": "node scripts/make-deployments.js",
+    "build": "node scripts/build.js",
+    "test": "node --test tests/logic.test.js",
+    "start": "python3 -m http.server 8000"
+  }
+}

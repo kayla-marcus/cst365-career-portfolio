@@ -1,0 +1,1789 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Meridian Bank SRE Incident Dashboard</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0f17;
+        --s1: #121826;
+        --s2: #182033;
+        --line: #263046;
+        --ink: #e8edf7;
+        --mut: #9aa7bf;
+        --acc: #6ea8ff;
+        --accd: #2f5fc4;
+        --crit: #ff7b7b;
+        --warn: #f5b942;
+        --ok: #3ecf8e;
+        --r: 12px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 500px at 70% -10%, #16213a 0, transparent 60%), var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.55 Inter,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: rgba(11, 15, 23, 0.85);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+        padding: 12px 24px;
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      header p {
+        margin: 0;
+        color: var(--mut);
+        font-size: 13px;
+      }
+      header p::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--warn);
+        margin-right: 8px;
+      }
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 24px 48px;
+      }
+      h2 {
+        font-size: 18px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        margin: 30px 0 10px;
+      }
+      h3 {
+        font-size: 14px;
+        font-weight: 650;
+        color: var(--mut);
+        margin: 18px 0 8px;
+      }
+      section,
+      .card {
+        background: var(--s1);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 16px 18px;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.03) inset,
+          0 8px 24px rgba(0, 0, 0, 0.25);
+      }
+      section {
+        margin-bottom: 14px;
+        overflow-x: auto;
+      }
+      .card {
+        background: var(--s2);
+        box-shadow: none;
+        margin: 8px 0;
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .two {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+        margin-bottom: 14px;
+      }
+      .two > section {
+        margin: 0;
+      }
+      .big {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        margin-top: 2px;
+      }
+      .mut {
+        color: var(--mut);
+        font-size: 13px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 650;
+        border: 1px solid;
+        white-space: nowrap;
+      }
+      .crit {
+        color: var(--crit);
+        background: rgba(255, 123, 123, 0.12);
+        border-color: rgba(255, 123, 123, 0.45);
+      }
+      .warn {
+        color: var(--warn);
+        background: rgba(245, 185, 66, 0.12);
+        border-color: rgba(245, 185, 66, 0.45);
+      }
+      .ok {
+        color: var(--ok);
+        background: rgba(62, 207, 142, 0.12);
+        border-color: rgba(62, 207, 142, 0.45);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        color: var(--mut);
+        font-weight: 600;
+        font-size: 12.5px;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      tbody tr:hover {
+        background: rgba(110, 168, 255, 0.05);
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: var(--ink);
+      }
+      button {
+        background: var(--s2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 5px 12px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+      button:hover:not(:disabled) {
+        border-color: var(--acc);
+        background: #1d2942;
+      }
+      button.p {
+        background: var(--accd);
+        border-color: var(--accd);
+        font-weight: 600;
+      }
+      button.p:hover:not(:disabled) {
+        background: #3a6fd8;
+        border-color: #3a6fd8;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      input,
+      select,
+      textarea {
+        background: #0e1422;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 10px;
+      }
+      input[type='checkbox'] {
+        accent-color: var(--acc);
+        width: 16px;
+        height: 16px;
+        vertical-align: -3px;
+        margin-right: 6px;
+      }
+      :focus-visible {
+        outline: 2px solid var(--acc);
+        outline-offset: 2px;
+      }
+      .bar {
+        height: 10px;
+        background: #0e1422;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 8px 0 12px;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--ok);
+      }
+      .bar i.warn {
+        background: var(--warn);
+      }
+      .bar i.crit {
+        background: var(--crit);
+      }
+      .log,
+      pre {
+        font:
+          12.5px ui-monospace,
+          'SF Mono',
+          Menlo,
+          Consolas,
+          monospace;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-x: auto;
+      }
+      .log td {
+        padding: 6px 8px;
+      }
+      tr.sel {
+        background: rgba(110, 168, 255, 0.1);
+      }
+      tr.sel td:first-child {
+        box-shadow: inset 3px 0 var(--acc);
+      }
+      .pill.st {
+        font-size: 14px;
+        padding: 4px 14px;
+      }
+      a.btn {
+        display: inline-block;
+        background: var(--s2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 5px 12px;
+        color: var(--ink);
+        text-decoration: none;
+      }
+      a.btn:hover {
+        border-color: var(--acc);
+      }
+      tr.active td:first-child {
+        box-shadow: inset 4px 0 var(--crit);
+      }
+      tr.resolved td:first-child {
+        box-shadow: inset 4px 0 var(--ok);
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 6px;
+        overflow-x: auto;
+      }
+      .tabs button {
+        background: none;
+        border: 0;
+        border-bottom: 3px solid transparent;
+        border-radius: 0;
+        padding: 10px 16px;
+        color: var(--mut);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .tabs button[aria-selected='true'] {
+        color: var(--ink);
+        border-bottom-color: var(--acc);
+      }
+      \n#detail,
+      #draft {
+        scroll-margin-top: 72px;
+      }
+      .acc {
+        color: var(--acc);
+        background: rgba(110, 168, 255, 0.12);
+        border-color: rgba(110, 168, 255, 0.45);
+      }
+      tr.contact {
+        background: rgba(245, 185, 66, 0.1);
+      }
+      tr.contact td:first-child {
+        box-shadow: inset 4px 0 var(--warn);
+      }
+      .rec {
+        margin: 10px 0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border-left: 4px solid;
+        font-size: 13.5px;
+      }
+      .rec.crit,
+      .rec.warn,
+      .rec.ok {
+        color: var(--ink);
+      }
+      .rec b {
+        display: block;
+      }
+      textarea {
+        width: 100%;
+        min-height: 300px;
+        font:
+          13px/1.55 ui-monospace,
+          Menlo,
+          Consolas,
+          monospace;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 8px 0;
+      }
+      ul {
+        padding-left: 20px;
+        margin: 6px 0;
+      }
+      li {
+        margin: 2px 0;
+      }
+      label {
+        cursor: pointer;
+      }
+      p {
+        margin: 6px 0;
+      }
+      b {
+        font-weight: 650;
+      }
+      @media (max-width: 640px) {
+        main {
+          padding: 14px 12px 40px;
+        }
+        header {
+          padding: 10px 14px;
+        }
+        .big {
+          font-size: 24px;
+        }
+        section,
+        .card {
+          padding: 12px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Meridian Bank SRE Incident Dashboard</h1>
+      <p>Simulated data from a fictional banking scenario. Not connected to live monitoring.</p>
+    </header>
+    <main id="app" aria-live="polite"></main>
+    <script>
+/**
+ * Meridian SRE dashboard - seed data (synthetic).
+ *
+ * Everything the interface shows comes from here, so numbers cannot disagree between views.
+ * INC-1's numbers come from my Meridian assignment; INC-2 to INC-4 details are invented
+ * and labeled "(synthetic)" in their text. Nothing here is real or live.
+ *
+ * Shape of an incident (all fields are read by src/app.js or src/logic.js):
+ *   sli            id of the SLO whose budget it spends (one incident spends one SLI)
+ *   durationMin    minutes from impact start to restore (so far, if still active)
+ *   badShare       fraction of that SLI's requests that were bad during the incident
+ *   detectedMin    minutes from impact start to detection, or null if not recorded
+ *   restoredAt     ISO time the system was restored; null means the incident is Active
+ *   requestNoun, badVerb, cause, customerImpact   wording for the postmortem starter
+ *   tags           used to match related postmortems
+ *   runbook        key into `runbooks`, or null when none exists
+ *   contact        (active incidents) escalation roles to highlight, each with a reason
+ */
+const SEED = {
+  // The 30-day error budget window.
+  window: { start: '2026-09-01', days: 30 },
+  // SLOs. Each one has its own error budget.
+  slis: [
+    {
+      id: 'SLI-1',
+      service: 'Payment API',
+      name: 'Availability',
+      slo: 0.999,
+      def: 'Successful payment requests / all payment requests',
+    },
+    {
+      id: 'SLI-2',
+      service: 'Mobile authentication',
+      name: 'Latency (under 2 s)',
+      slo: 0.99,
+      def: 'Logins completing in under 2 s / all logins',
+    },
+    {
+      id: 'SLI-3',
+      service: 'Funds transfers',
+      name: 'Posting latency (under 60 s)',
+      slo: 0.995,
+      def: 'Transfers posted within 60 s / all transfers',
+    },
+    {
+      id: 'SLI-4',
+      service: 'Account balance API',
+      name: 'Availability',
+      slo: 0.999,
+      def: 'Successful balance requests / all balance requests',
+    },
+  ],
+  // Incidents. See the field guide at the top of this file.
+  incidents: [
+    {
+      id: 'INC-1',
+      title: 'Payment processing outage',
+      service: 'Payment API',
+      runbook: 'payment',
+      sli: 'SLI-1',
+      sev: 'SEV-1',
+      start: '2026-09-08T02:14:00Z',
+      durationMin: 47,
+      badShare: 0.6,
+      detectedMin: 13,
+      restoredAt: '2026-09-08T03:01:00Z',
+      requestNoun: 'payment',
+      badVerb: 'failed',
+      cause:
+        'A release deployed at 01:52 UTC held a database connection while waiting on an external fraud-scoring call, and as evening traffic rose the payment service ran out of connections.',
+      customerImpact:
+        'about 31,000 failed payment attempts (estimate), plus 23 payments left in an ambiguous state that were resolved by 2026-09-09.',
+      detection:
+        'Customer support escalated by phone at 02:27 UTC (13 min after impact began). No alert fired.',
+      tags: ['recent-change', 'connection-pool', 'no-user-facing-alert', 'slow-diagnosis'],
+      metrics: [
+        { name: 'Payment error rate (estimate)', value: 60, unit: '%', limit: 2 },
+        { name: 'DB connection pool use', value: 100, unit: '%', limit: 80 },
+        { name: 'Request volume (estimate)', value: 1100, unit: 'req/min', limit: null },
+      ],
+      alert: {
+        name: 'PaymentErrorRateHigh',
+        rule: 'Error rate above 2% for 2 min',
+        state: 'Proposed (none existed during the incident)',
+      },
+      logs: [
+        {
+          ts: '02:05:12',
+          level: 'WARN',
+          service: 'payment-service',
+          trace: 'a1f3c9',
+          req: 'r-47001',
+          msg: 'connection pool use at 71%',
+        },
+        {
+          ts: '02:14:08',
+          level: 'ERROR',
+          service: 'payment-service',
+          trace: 'b72d10',
+          req: 'r-48213',
+          msg: 'timed out waiting for connection from pool (100/100)',
+        },
+        {
+          ts: '02:31:40',
+          level: 'ERROR',
+          service: 'api-gateway',
+          trace: 'c90e44',
+          req: 'r-49977',
+          msg: 'upstream payment-service returned 504',
+        },
+        {
+          ts: '02:52:03',
+          level: 'INFO',
+          service: 'deploy-pipeline',
+          trace: '-',
+          req: '-',
+          msg: 'rollback to v4.11 started',
+        },
+        {
+          ts: '02:58:30',
+          level: 'INFO',
+          service: 'payment-service',
+          trace: 'd11a02',
+          req: 'r-50410',
+          msg: 'connection pool use at 22%',
+        },
+      ],
+      timeline: [
+        ['01:52', 'Release v4.12 deployed to all pods'],
+        ['02:14', 'Pool reaches 100%; payments time out (impact begins)'],
+        ['02:27', 'Support escalates to on-call (detection)'],
+        ['02:47', 'Onset linked to v4.12; decision to roll back'],
+        ['02:58', 'Rollback to v4.11 completes'],
+        ['03:01', 'Failure rate below 0.1% (restored)'],
+      ],
+    },
+    {
+      id: 'INC-2',
+      title: 'Mobile authentication degradation',
+      service: 'Mobile authentication',
+      runbook: null,
+      sli: 'SLI-2',
+      sev: 'SEV-2',
+      start: '2026-09-22T14:30:00Z',
+      durationMin: 150,
+      badShare: 0.4,
+      detectedMin: null,
+      restoredAt: null,
+      requestNoun: 'login',
+      badVerb: 'were slower than 2 seconds',
+      detection: null,
+      tags: ['recent-change', 'auth-latency'],
+      metrics: [{ name: 'Slow logins (over 2 s, estimate)', value: 40, unit: '%', limit: 1 }],
+      alert: null,
+      logs: [
+        {
+          ts: '14:05:00',
+          level: 'INFO',
+          service: 'auth-service',
+          trace: '-',
+          req: '-',
+          msg: 'token cache configuration changed (synthetic)',
+        },
+        {
+          ts: '14:31:12',
+          level: 'WARN',
+          service: 'auth-service',
+          trace: 'e5c7a1',
+          req: 'r-91002',
+          msg: 'token validation slow; cache miss ratio elevated (synthetic)',
+        },
+        {
+          ts: '14:44:50',
+          level: 'ERROR',
+          service: 'mobile-gateway',
+          trace: 'f8b3d6',
+          req: 'r-91877',
+          msg: 'login request exceeded 2 s budget (synthetic)',
+        },
+      ],
+      timeline: [['14:30', 'Degradation begins (about 40% of logins slower than 2 s)']],
+    },
+    {
+      id: 'INC-3',
+      title: 'Funds transfer posting backlog',
+      service: 'Funds transfers',
+      runbook: 'transfers',
+      sli: 'SLI-3',
+      sev: 'SEV-2',
+      start: '2026-09-29T09:40:00Z',
+      durationMin: 38,
+      badShare: 0.35,
+      detectedMin: 9,
+      restoredAt: null,
+      requestNoun: 'transfer',
+      badVerb: 'posted late',
+      cause: null,
+      detection:
+        'Alert TransferQueueBacklogHigh fired and paged on-call at 09:49 UTC, 9 min after posting delays began (synthetic).',
+      tags: ['queue-backlog', 'downstream-timeout'],
+      metrics: [
+        { name: 'Transfer queue depth', value: 8400, unit: ' msgs', limit: 5000 },
+        { name: 'Posting delay p95', value: 185, unit: ' s', limit: 60 },
+        { name: 'Transfers posted late (estimate)', value: 35, unit: '%', limit: 0.5 },
+      ],
+      alert: {
+        name: 'TransferQueueBacklogHigh',
+        rule: 'Queue depth above 5,000 messages for 5 min',
+        state: 'Firing since 09:49 UTC',
+      },
+      contact: [
+        { role: 'Primary on-call SRE', why: 'You are paged. Acknowledge and lead the response.' },
+        {
+          role: 'Secondary on-call (database)',
+          why: 'Logs show ledger database calls timing out.',
+        },
+        { role: 'Transfers platform on-call', why: 'Workers are retrying and requeuing messages.' },
+      ],
+      logs: [
+        {
+          ts: '09:40:11',
+          level: 'WARN',
+          service: 'queue-broker',
+          trace: '-',
+          req: '-',
+          msg: 'consumer group transfer-posting lag at 1,200 and rising (synthetic)',
+        },
+        {
+          ts: '09:41:37',
+          level: 'ERROR',
+          service: 'transfer-worker',
+          trace: 'g2a8c1',
+          req: 'r-77120',
+          msg: 'ledger-db call timed out after 30 s; retrying (synthetic)',
+        },
+        {
+          ts: '09:44:10',
+          level: 'WARN',
+          service: 'queue-broker',
+          trace: '-',
+          req: '-',
+          msg: 'queue depth passed 5,000 (5,012) (synthetic)',
+        },
+        {
+          ts: '09:47:22',
+          level: 'ERROR',
+          service: 'transfer-worker',
+          trace: 'h7d3b9',
+          req: 'r-77341',
+          msg: 'retry budget exhausted for 212 messages; requeued (synthetic)',
+        },
+        {
+          ts: '09:49:00',
+          level: 'INFO',
+          service: 'alertmanager',
+          trace: '-',
+          req: '-',
+          msg: 'TransferQueueBacklogHigh firing; on-call paged (synthetic)',
+        },
+      ],
+      timeline: [
+        ['09:40', 'Posting delays begin'],
+        ['09:44', 'Queue depth passes 5,000'],
+        ['09:49', 'Alert TransferQueueBacklogHigh fires and pages on-call'],
+      ],
+    },
+    {
+      id: 'INC-4',
+      title: 'Account balance outage',
+      service: 'Account balance API',
+      runbook: null,
+      sli: 'SLI-4',
+      sev: 'SEV-1',
+      start: '2026-09-15T16:20:00Z',
+      durationMin: 52,
+      badShare: 1.0,
+      detectedMin: 6,
+      restoredAt: '2026-09-15T17:12:00Z',
+      requestNoun: 'balance',
+      badVerb: 'failed',
+      cause:
+        'The upstream core-banking service stopped responding and the balance API had no fallback (synthetic).',
+      customerImpact: null,
+      detection:
+        'Alert BalanceApiErrorRateHigh paged on-call at 16:26 UTC, 6 min after impact began (synthetic).',
+      tags: ['dependency-failure'],
+      metrics: [
+        { name: 'Balance request error rate (estimate)', value: 100, unit: '%', limit: 2 },
+        { name: 'Upstream call timeouts (estimate)', value: 100, unit: '%', limit: 1 },
+      ],
+      alert: {
+        name: 'BalanceApiErrorRateHigh',
+        rule: 'Error rate above 2% for 2 min',
+        state: 'Resolved at 17:12 UTC',
+      },
+      logs: [
+        {
+          ts: '16:20:05',
+          level: 'ERROR',
+          service: 'balance-api',
+          trace: 'k3m9a2',
+          req: 'r-62001',
+          msg: 'core-banking call timed out after 10 s (synthetic)',
+        },
+        {
+          ts: '16:24:40',
+          level: 'ERROR',
+          service: 'balance-api',
+          trace: 'k4n1b8',
+          req: 'r-62190',
+          msg: 'all balance requests failing; no cached fallback (synthetic)',
+        },
+        {
+          ts: '16:26:00',
+          level: 'INFO',
+          service: 'alertmanager',
+          trace: '-',
+          req: '-',
+          msg: 'BalanceApiErrorRateHigh firing; on-call paged (synthetic)',
+        },
+        {
+          ts: '17:12:10',
+          level: 'INFO',
+          service: 'balance-api',
+          trace: 'k9z2c4',
+          req: 'r-63877',
+          msg: 'core-banking calls succeeding; error rate below 0.1% (synthetic)',
+        },
+      ],
+      timeline: [
+        ['16:20', 'Balance requests begin failing'],
+        ['16:26', 'Alert fires and pages on-call'],
+        ['17:12', 'Upstream recovers; service restored'],
+      ],
+    },
+  ],
+  // Written postmortems. `tags` match them to other incidents.
+  postmortems: [
+    {
+      id: 'PM-1',
+      incident: 'INC-1',
+      title: 'Postmortem: Payment Processing Outage',
+      date: '2026-09-10',
+      service: 'Payment API',
+      tags: ['recent-change', 'connection-pool', 'no-user-facing-alert', 'slow-diagnosis'],
+      body: 'Summary: A release held DB connections during an external call; the pool filled as evening traffic rose. About 60% of payments failed for 47 minutes. Detected after 13 minutes by support; restored by rollback.\n\nBudget: 28.2 of 43.2 minutes (65.3%).\n\nActions: alert on error rate and pool use; feature flags; updated runbook; structured logs and traces; production-peak load test and canary.',
+    },
+  ],
+  // Runbooks, keyed by the `runbook` field of an incident.
+  runbooks: {
+    payment: {
+      title: 'On-Call Runbook: Payment Processing Service',
+      service: 'Payment API',
+      thresholds: [
+        ['Payment error rate', 'Above 2% for 2 min', 'SEV-1 page'],
+        ['Synthetic test payment', '2 consecutive failures', 'SEV-1 page'],
+        ['DB pool use', 'Above 80% for 2 min', 'SEV-2 page'],
+        ['p95 latency', 'Above 800 ms for 5 min', 'SEV-2 page'],
+      ],
+      steps: [
+        'Acknowledge within 5 minutes; open the incident channel; declare incident commander for SEV-1',
+        'Confirm impact on the gateway dashboard and send a test payment',
+        'Check deployments and flag changes in the last 24 hours; if a release preceded impact, go to step 5',
+        'Check the database: pool use, idle-in-transaction connections, replication lag',
+        'Mitigate: disable the feature flag or roll back; confirm no schema change with release engineering',
+        'Verify: error rate below 0.1%, pool use below 60%, test payment succeeds; watch 15 minutes',
+        'Communicate every 15 minutes; check ambiguous payments; schedule a postmortem within 2 business days',
+      ],
+      escalation: [
+        {
+          level: 'L1',
+          role: 'Primary on-call SRE',
+          when: 'Paged by an alert',
+          name: 'Avery Chen',
+          email: 'avery.chen@meridianbank.example',
+        },
+        {
+          level: 'L2',
+          role: 'Secondary on-call (database)',
+          when: 'No progress after 15 min, or pool and database symptoms',
+          name: 'Jordan Patel',
+          email: 'jordan.patel@meridianbank.example',
+        },
+        {
+          level: 'L3',
+          role: 'Payment platform on-call',
+          when: 'A release or code change is suspected',
+          name: 'Riley Okafor',
+          email: 'riley.okafor@meridianbank.example',
+        },
+        {
+          level: 'L4',
+          role: 'Engineering manager',
+          when: 'SEV-1 lasts over 30 min',
+          name: 'Sam Rivera',
+          email: 'sam.rivera@meridianbank.example',
+        },
+        {
+          level: 'Notify',
+          role: 'Customer support lead',
+          when: 'Any SEV-1 with customer impact, within 15 min',
+          name: 'Taylor Brooks',
+          email: 'taylor.brooks@meridianbank.example',
+        },
+        {
+          level: 'Notify',
+          role: 'Compliance',
+          when: 'Any SEV-1 with customer impact, within 15 min',
+          name: 'Morgan Ellis',
+          email: 'morgan.ellis@meridianbank.example',
+        },
+      ],
+    },
+    transfers: {
+      title: 'On-Call Runbook: Funds Transfer Posting',
+      service: 'Funds transfers',
+      thresholds: [
+        ['Queue depth', 'Above 5,000 messages for 5 min', 'SEV-2 page'],
+        ['Posting delay p95', 'Above 60 s for 5 min', 'SEV-2 page'],
+        ['Ledger DB call timeouts', 'Above 5% for 2 min', 'SEV-2 page'],
+        ['Consumer lag', 'Rising for 10 min', 'Warning'],
+      ],
+      steps: [
+        'Acknowledge within 5 minutes and open the incident channel',
+        'Confirm the backlog: queue depth, consumer lag, and age of the oldest message',
+        'Check the consumers: are transfer-worker pods running, consuming, and not restarting?',
+        'Check the ledger database: latency, locks, and connections; page the database on-call if it is degraded',
+        'Check what changed in the last 24 hours: deployments, configuration, and feature flags',
+        'Mitigate: add transfer-worker replicas and pause non-urgent jobs that publish to the queue. Never purge the queue; each message is a customer transfer',
+        'Verify: depth falling below 1,000, p95 under 60 s, no stuck messages; watch 15 minutes, then reconcile transfers posted twice or not at all',
+      ],
+      escalation: [
+        {
+          level: 'L1',
+          role: 'Primary on-call SRE',
+          when: 'Paged by an alert',
+          name: 'Avery Chen',
+          email: 'avery.chen@meridianbank.example',
+        },
+        {
+          level: 'L2',
+          role: 'Secondary on-call (database)',
+          when: 'Ledger database slow or timing out',
+          name: 'Jordan Patel',
+          email: 'jordan.patel@meridianbank.example',
+        },
+        {
+          level: 'L3',
+          role: 'Transfers platform on-call',
+          when: 'Workers or queue misbehaving, or a release is suspected',
+          name: 'Casey Nguyen',
+          email: 'casey.nguyen@meridianbank.example',
+        },
+        {
+          level: 'L4',
+          role: 'Engineering manager',
+          when: 'SEV-2 lasts over 60 min or becomes SEV-1',
+          name: 'Sam Rivera',
+          email: 'sam.rivera@meridianbank.example',
+        },
+        {
+          level: 'Notify',
+          role: 'Customer support lead',
+          when: 'Customers report delayed transfers',
+          name: 'Taylor Brooks',
+          email: 'taylor.brooks@meridianbank.example',
+        },
+      ],
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = SEED;
+
+</script>
+<script>
+/**
+ * Meridian SRE dashboard - calculations.
+ *
+ * Pure functions with no DOM access, so they can be unit tested in Node
+ * (tests/logic.test.js) and reused in the browser (exposed as the global `Logic`).
+ *
+ * Sections: constants, incident status, error budgets, detection and restore times,
+ *           related postmortems, DORA metrics, postmortem starter text.
+ */
+(function (root) {
+  const Logic = {};
+
+  const UNKNOWN = 'Unknown - requires human review';
+  const MS_PER_MINUTE = 60 * 1000;
+  const MS_PER_DAY = 24 * 60 * MS_PER_MINUTE;
+  const oneDecimal = (n) => n.toFixed(1);
+  const mean = (numbers) =>
+    numbers.length ? numbers.reduce((sum, n) => sum + n, 0) / numbers.length : null;
+  const median = (numbers) => {
+    const sorted = [...numbers].sort((a, b) => a - b);
+    const middle = sorted.length >> 1;
+    if (!sorted.length) return null;
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  };
+
+  // ---------- Incident status ----------
+
+  /** Status is detected from data: an incident is Resolved once a restore time is recorded. */
+  Logic.status = (incident) =>
+    incident.restoredAt && new Date(incident.restoredAt) >= new Date(incident.start)
+      ? 'Resolved'
+      : 'Active';
+  Logic.isActive = (incident) => Logic.status(incident) === 'Active';
+
+  // ---------- Error budgets ----------
+
+  /** Minutes of unreliability an SLO allows in a window. 99.9% over 30 days = 43.2. */
+  Logic.budgetMinutes = (slo, windowDays) => (1 - slo) * windowDays * 24 * 60;
+
+  /**
+   * Adds `effMin` to each incident: its minutes after removing any overlap with earlier
+   * incidents, so the same minute is never charged to a budget twice.
+   * Pass incidents that share one SLI.
+   */
+  Logic.effective = (incidents) => {
+    let latestEnd = -Infinity;
+    return [...incidents]
+      .sort((a, b) => new Date(a.start) - new Date(b.start))
+      .map((incident) => {
+        const start = new Date(incident.start).getTime();
+        const end = start + incident.durationMin * MS_PER_MINUTE;
+        const effMin = Math.max(0, (end - Math.max(start, latestEnd)) / MS_PER_MINUTE);
+        latestEnd = Math.max(latestEnd, end);
+        return { ...incident, effMin };
+      });
+  };
+
+  /**
+   * Error budget for each SLO. An incident only spends the budget of the SLI it is linked to.
+   *   consumed = effective minutes x share of requests that were bad
+   * Returns each SLO plus: budget, used, remaining (negative when over), pct (1 = 100%),
+   * status (Healthy < 50%, At risk < 100%, Exhausted), and the incident rows behind `used`.
+   */
+  Logic.summarize = (seed) => {
+    const windowStart = new Date(seed.window.start).getTime();
+    const windowEnd = windowStart + seed.window.days * MS_PER_DAY;
+    return seed.slis.map((sli) => {
+      const inWindow = seed.incidents.filter((incident) => {
+        const start = new Date(incident.start).getTime();
+        return incident.sli === sli.id && start >= windowStart && start < windowEnd;
+      });
+      const rows = Logic.effective(inWindow).map((incident) => ({
+        id: incident.id,
+        title: incident.title,
+        start: incident.start,
+        durationMin: incident.durationMin,
+        effMin: incident.effMin,
+        badShare: incident.badShare,
+        consumed: incident.effMin * incident.badShare,
+      }));
+      const budget = Logic.budgetMinutes(sli.slo, seed.window.days);
+      const used = rows.reduce((sum, row) => sum + row.consumed, 0);
+      const pct = used / budget;
+      const status = pct >= 1 ? 'Exhausted' : pct >= 0.5 ? 'At risk' : 'Healthy';
+      return { ...sli, budget, used, remaining: budget - used, pct, status, rows };
+    });
+  };
+
+  Logic.RECS = {
+    Healthy:
+      'Business as usual. Ship on the normal schedule and keep watching how fast the budget is used.',
+    'At risk':
+      'Avoid risky deployments in this area. Require a tested rollback plan and extra review for changes to this service until the budget recovers.',
+    Exhausted:
+      'Stop deploying new features that affect this budget. Focus on fixes and reliability work until the budget resets or recovers.',
+  };
+  Logic.recommend = (budgetStatus) => Logic.RECS[budgetStatus];
+
+  // ---------- Detection and restore times ----------
+
+  /** Mean minutes to detect, over incidents with a recorded detection time. Null if none. */
+  Logic.mttd = (incidents) =>
+    mean(incidents.filter((i) => i.detectedMin != null).map((i) => i.detectedMin));
+  /** Mean incident duration, over Resolved incidents only (ongoing ones have no final length). */
+  Logic.mttr = (incidents) =>
+    mean(incidents.filter((i) => Logic.status(i) === 'Resolved').map((i) => i.durationMin));
+
+  // ---------- Related postmortems ----------
+
+  /** For each shared tag: what is observed, and what it might suggest (unconfirmed). */
+  const TAG_TEXT = {
+    'recent-change': [
+      'both incidents began after a deployment or configuration change',
+      'checking recent changes first may help',
+    ],
+    'connection-pool': [
+      'both show connection-pool evidence',
+      'pool saturation is a candidate cause',
+    ],
+    'no-user-facing-alert': [
+      'neither was caught by a user-facing alert',
+      'symptom-based alerting could shorten detection',
+    ],
+  };
+
+  /**
+   * Postmortems for OTHER incidents that share at least one tag with this incident.
+   * Rule-based and deterministic: no AI model is called. Observed facts are kept
+   * separate from inferences, and the caveat says matching is by tags only.
+   */
+  Logic.related = (incident, postmortems) =>
+    postmortems
+      .filter((pm) => pm.incident !== incident.id)
+      .map((pm) => {
+        const shared = pm.tags.filter((tag) => incident.tags.includes(tag));
+        const text = shared.map((tag) => TAG_TEXT[tag] || [tag, '']);
+        return {
+          pm,
+          shared,
+          observed: text.map(([observed]) => observed),
+          inferred: text.map(([, inferred]) => inferred).filter(Boolean),
+          caveat: 'Matched on shared tags only. No common root cause is established.',
+        };
+      })
+      .filter((match) => match.shared.length);
+
+  // ---------- DORA metrics ----------
+
+  /**
+   * Parse CSV text into objects. Handles plain comma-separated values only (no quoted
+   * fields). Empty cells become null, True/False become booleans, other columns numbers.
+   */
+  Logic.parseCsv = (text) => {
+    const TEXT_COLUMNS = [
+      'id',
+      'data_source',
+      'commit_time',
+      'deploy_time',
+      'failure_cause',
+      'incident_id',
+    ];
+    const [header, ...rows] = text
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => line.split(','));
+    const parseCell = (column, cell) => {
+      if (cell === '' || cell == null) return null;
+      if (TEXT_COLUMNS.includes(column)) return cell;
+      if (cell === 'True' || cell === 'False') return cell === 'True';
+      return Number(cell);
+    };
+    return rows.map((row) =>
+      Object.fromEntries(header.map((column, i) => [column, parseCell(column, row[i])]))
+    );
+  };
+
+  /** The `count` most recent deployments, newest first. */
+  Logic.recent = (deployments, count) =>
+    [...deployments].sort((a, b) => b.deploy_time.localeCompare(a.deploy_time)).slice(0, count);
+
+  /**
+   * Group deployments into weeks that start on Monday (UTC). Weeks with no deployments
+   * between the first and last are kept so charts show the gap.
+   * Each week: { week: 'YYYY-MM-DD', count, medianLeadMin, failed, cfr }.
+   */
+  Logic.weekly = (deployments) => {
+    const mondayOf = (isoTime) => {
+      const t = new Date(isoTime + 'Z');
+      const daysSinceMonday = (t.getUTCDay() + 6) % 7;
+      return (
+        Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()) - daysSinceMonday * MS_PER_DAY
+      );
+    };
+    const byWeek = {};
+    deployments.forEach((d) => {
+      const monday = mondayOf(d.deploy_time);
+      (byWeek[monday] = byWeek[monday] || []).push(d);
+    });
+    const mondays = Object.keys(byWeek).map(Number);
+    const weeks = [];
+    for (let t = Math.min(...mondays); t <= Math.max(...mondays); t += 7 * MS_PER_DAY) {
+      const inWeek = byWeek[t] || [];
+      const failed = inWeek.filter((d) => d.failed).length;
+      weeks.push({
+        week: new Date(t).toISOString().slice(0, 10),
+        count: inWeek.length,
+        medianLeadMin: median(inWeek.map((d) => d.lead_time_minutes)),
+        failed,
+        cfr: inWeek.length ? failed / inWeek.length : null,
+      });
+    }
+    return weeks;
+  };
+
+  /** The four DORA metrics for a list of deployments. Times are in minutes. */
+  Logic.dora = (deployments) => {
+    const failures = deployments.filter((d) => d.failed);
+    const recoveries = failures.map((d) => d.recovery_minutes).filter((m) => m != null);
+    return {
+      total: deployments.length,
+      failed: failures.length,
+      dfPerWeek: deployments.length / Logic.weekly(deployments).length,
+      medianLeadMin: median(deployments.map((d) => d.lead_time_minutes)),
+      cfr: failures.length / deployments.length,
+      mttrMin: mean(recoveries),
+    };
+  };
+
+  /**
+   * Rating bands. `cut` lists the Elite, High, and Medium boundaries in order; anything
+   * past the last boundary is Low. The Elite and Low edges follow the course lesson;
+   * the middle bands are this project's assumption, based on DORA research.
+   */
+  Logic.BANDS = {
+    df: {
+      higherIsBetter: true,
+      cut: [1, 1 / 7, 1 / 30],
+      text: 'Elite: daily or more. High: weekly. Medium: monthly. Low: less often.',
+    }, // per day
+    lead: {
+      cut: [60, 1440, 10080],
+      text: 'Elite: under 1 hour. High: under 1 day. Medium: under 1 week. Low: longer.',
+    }, // minutes
+    cfr: {
+      cut: [0.05, 0.1, 0.15],
+      text: 'Elite: under 5%. High: under 10%. Medium: under 15%. Low: 15% or more.',
+    }, // fraction
+    mttr: {
+      cut: [60, 1440, 10080],
+      text: 'Elite: under 1 hour. High: under 1 day. Medium: under 1 week. Low: longer.',
+    }, // minutes
+  };
+
+  /** 'Elite' | 'High' | 'Medium' | 'Low' for a metric key (df, lead, cfr, mttr) and value. */
+  Logic.rate = (metric, value) => {
+    const { cut, higherIsBetter } = Logic.BANDS[metric];
+    const band = cut.findIndex((limit) => (higherIsBetter ? value >= limit : value < limit));
+    return band < 0 ? 'Low' : ['Elite', 'High', 'Medium'][band];
+  };
+
+  // ---------- Postmortem starter ----------
+
+  /**
+   * Opening summary and impact for a Resolved incident, built only from recorded data.
+   * Anything not recorded says "Unknown - requires human review" instead of being invented.
+   * `summaries` is the result of Logic.summarize.
+   */
+  Logic.draftStart = (incident, summaries) => {
+    const sli = summaries.find((s) => s.id === incident.sli);
+    const row = sli.rows.find((r) => r.id === incident.id);
+    const clock = (isoTime) => new Date(isoTime).toISOString().slice(11, 16); // HH:MM
+
+    const summary =
+      `On ${incident.start.slice(0, 10)} from ${clock(incident.start)} to ${clock(incident.restoredAt)} UTC ` +
+      `(${incident.durationMin} minutes), about ${Math.round(incident.badShare * 100)}% of ` +
+      `${incident.requestNoun} requests ${incident.badVerb}. ` +
+      (incident.cause || `Cause: ${UNKNOWN}.`);
+
+    const budgetText =
+      `${oneDecimal(row.consumed)} of ${oneDecimal(sli.budget)} minutes used ` +
+      `(${oneDecimal((row.consumed / sli.budget) * 100)}%), ` +
+      (sli.remaining >= 0
+        ? `leaving ${oneDecimal(sli.remaining)} minutes for the rest of the 30-day window.`
+        : `which is ${oneDecimal(-sli.remaining)} minutes over the 30-day budget.`);
+    const detectText =
+      incident.detectedMin != null
+        ? `${incident.detectedMin} minutes to detect`
+        : 'Detection time unknown';
+
+    return {
+      summary,
+      impact: [
+        { label: 'Customers', text: incident.customerImpact || UNKNOWN },
+        { label: 'Error budget', text: budgetText },
+        { label: 'Durations', text: `${detectText}, ${incident.durationMin} minutes to restore.` },
+      ],
+    };
+  };
+
+  if (typeof module !== 'undefined') module.exports = Logic;
+  else root.Logic = Logic;
+})(this);
+
+</script>
+<script>
+// Generated by scripts/make-deployments.js from data/deployments_SYNTHETIC.csv. Synthetic data.
+const DEPLOYMENTS = [{"id":"D001","commit_time":"2026-07-06T10:32","deploy_time":"2026-07-06T14:43","lead_time_minutes":250.64,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D002","commit_time":"2026-07-06T13:44","deploy_time":"2026-07-06T16:23","lead_time_minutes":159.52,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D003","commit_time":"2026-07-06T10:54","deploy_time":"2026-07-07T12:21","lead_time_minutes":1527.16,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D004","commit_time":"2026-07-07T10:57","deploy_time":"2026-07-08T10:39","lead_time_minutes":1422.5,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D005","commit_time":"2026-07-07T16:41","deploy_time":"2026-07-08T11:01","lead_time_minutes":1099.75,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D006","commit_time":"2026-07-09T10:01","deploy_time":"2026-07-09T16:43","lead_time_minutes":402.19,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D007","commit_time":"2026-07-08T13:13","deploy_time":"2026-07-10T09:03","lead_time_minutes":2629.78,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D008","commit_time":"2026-07-09T14:37","deploy_time":"2026-07-10T11:52","lead_time_minutes":1275.9,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D009","commit_time":"2026-07-14T15:03","deploy_time":"2026-07-14T17:01","lead_time_minutes":118.53,"failed":true,"failure_cause":"bad_image_tag","recovery_minutes":69.8,"incident_id":null},{"id":"D010","commit_time":"2026-07-15T11:31","deploy_time":"2026-07-16T09:03","lead_time_minutes":1292.26,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D011","commit_time":"2026-07-16T10:43","deploy_time":"2026-07-17T09:05","lead_time_minutes":1341.5,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D012","commit_time":"2026-07-22T12:42","deploy_time":"2026-07-23T09:58","lead_time_minutes":1275.97,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D013","commit_time":"2026-07-23T09:00","deploy_time":"2026-07-23T15:07","lead_time_minutes":367.06,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D014","commit_time":"2026-07-24T15:10","deploy_time":"2026-07-27T10:34","lead_time_minutes":4043.3,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D015","commit_time":"2026-07-24T13:17","deploy_time":"2026-07-27T10:53","lead_time_minutes":4175.46,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D016","commit_time":"2026-07-28T13:10","deploy_time":"2026-07-29T09:04","lead_time_minutes":1193.41,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D017","commit_time":"2026-07-28T16:35","deploy_time":"2026-07-29T15:16","lead_time_minutes":1360.9,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D018","commit_time":"2026-07-29T10:29","deploy_time":"2026-07-30T10:21","lead_time_minutes":1432.55,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D019","commit_time":"2026-07-29T14:46","deploy_time":"2026-07-31T09:04","lead_time_minutes":2537.84,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D020","commit_time":"2026-07-30T14:16","deploy_time":"2026-07-31T09:05","lead_time_minutes":1128.82,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D021","commit_time":"2026-07-30T16:20","deploy_time":"2026-07-31T11:17","lead_time_minutes":1136.94,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D022","commit_time":"2026-08-03T10:36","deploy_time":"2026-08-03T12:52","lead_time_minutes":135.81,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D023","commit_time":"2026-08-03T09:01","deploy_time":"2026-08-04T09:04","lead_time_minutes":1442.05,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D024","commit_time":"2026-08-05T10:25","deploy_time":"2026-08-05T14:00","lead_time_minutes":215.47,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D025","commit_time":"2026-08-05T10:54","deploy_time":"2026-08-05T16:42","lead_time_minutes":347.87,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D026","commit_time":"2026-08-06T15:57","deploy_time":"2026-08-07T12:16","lead_time_minutes":1218.38,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D027","commit_time":"2026-08-07T15:11","deploy_time":"2026-08-10T09:03","lead_time_minutes":3952.78,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D028","commit_time":"2026-08-07T11:19","deploy_time":"2026-08-10T10:00","lead_time_minutes":4241.32,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D029","commit_time":"2026-08-07T13:44","deploy_time":"2026-08-10T11:30","lead_time_minutes":4185.99,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D030","commit_time":"2026-08-10T16:26","deploy_time":"2026-08-11T13:23","lead_time_minutes":1257.04,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D031","commit_time":"2026-08-11T11:55","deploy_time":"2026-08-12T11:16","lead_time_minutes":1401,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D032","commit_time":"2026-08-11T11:52","deploy_time":"2026-08-12T14:33","lead_time_minutes":1600.97,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D033","commit_time":"2026-08-12T12:30","deploy_time":"2026-08-12T15:50","lead_time_minutes":200.12,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D034","commit_time":"2026-08-14T16:19","deploy_time":"2026-08-17T10:06","lead_time_minutes":3947.59,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D035","commit_time":"2026-08-14T13:40","deploy_time":"2026-08-17T12:05","lead_time_minutes":4224.97,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D036","commit_time":"2026-08-14T16:37","deploy_time":"2026-08-17T12:56","lead_time_minutes":4098.48,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D037","commit_time":"2026-08-17T11:25","deploy_time":"2026-08-18T09:02","lead_time_minutes":1296.98,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D038","commit_time":"2026-08-17T16:28","deploy_time":"2026-08-19T09:06","lead_time_minutes":2438.66,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D039","commit_time":"2026-08-18T12:35","deploy_time":"2026-08-19T09:44","lead_time_minutes":1269.31,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D040","commit_time":"2026-08-18T16:29","deploy_time":"2026-08-19T09:58","lead_time_minutes":1048.21,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D041","commit_time":"2026-08-19T13:23","deploy_time":"2026-08-20T09:02","lead_time_minutes":1179.34,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D042","commit_time":"2026-08-20T11:24","deploy_time":"2026-08-21T09:04","lead_time_minutes":1300.46,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D043","commit_time":"2026-08-21T16:56","deploy_time":"2026-08-24T11:18","lead_time_minutes":3982.25,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D044","commit_time":"2026-08-25T10:29","deploy_time":"2026-08-25T15:33","lead_time_minutes":304.14,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D045","commit_time":"2026-08-26T15:25","deploy_time":"2026-08-27T09:05","lead_time_minutes":1059.94,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D046","commit_time":"2026-08-27T16:08","deploy_time":"2026-08-28T11:28","lead_time_minutes":1159.84,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D047","commit_time":"2026-08-31T11:01","deploy_time":"2026-08-31T14:58","lead_time_minutes":236.95,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D048","commit_time":"2026-09-01T11:08","deploy_time":"2026-09-01T14:01","lead_time_minutes":172.97,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D049","commit_time":"2026-09-02T10:10","deploy_time":"2026-09-02T13:33","lead_time_minutes":203.08,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D050","commit_time":"2026-09-03T09:55","deploy_time":"2026-09-03T12:27","lead_time_minutes":151.54,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D051","commit_time":"2026-09-03T12:46","deploy_time":"2026-09-03T16:18","lead_time_minutes":212.45,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D052","commit_time":"2026-09-03T11:52","deploy_time":"2026-09-04T09:33","lead_time_minutes":1300.39,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D053","commit_time":"2026-09-07T06:59","deploy_time":"2026-09-08T01:52","lead_time_minutes":1132.86,"failed":true,"failure_cause":"app_regression","recovery_minutes":47,"incident_id":"INC-1"},{"id":"D054","commit_time":"2026-09-07T16:52","deploy_time":"2026-09-08T11:51","lead_time_minutes":1139.56,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D055","commit_time":"2026-09-09T12:35","deploy_time":"2026-09-09T15:06","lead_time_minutes":150.64,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D056","commit_time":"2026-09-09T11:59","deploy_time":"2026-09-09T15:28","lead_time_minutes":209.01,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D057","commit_time":"2026-09-09T12:15","deploy_time":"2026-09-10T09:05","lead_time_minutes":1249.54,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D058","commit_time":"2026-09-09T13:44","deploy_time":"2026-09-10T10:30","lead_time_minutes":1246.27,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D059","commit_time":"2026-09-10T16:37","deploy_time":"2026-09-11T13:10","lead_time_minutes":1232.31,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D060","commit_time":"2026-09-11T13:29","deploy_time":"2026-09-14T10:48","lead_time_minutes":4158.83,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D061","commit_time":"2026-09-15T10:16","deploy_time":"2026-09-15T16:08","lead_time_minutes":352.86,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D062","commit_time":"2026-09-15T15:59","deploy_time":"2026-09-16T13:08","lead_time_minutes":1268.69,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D063","commit_time":"2026-09-16T15:05","deploy_time":"2026-09-17T12:02","lead_time_minutes":1257.46,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D064","commit_time":"2026-09-17T09:51","deploy_time":"2026-09-17T15:33","lead_time_minutes":341.54,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D065","commit_time":"2026-09-18T14:11","deploy_time":"2026-09-21T09:04","lead_time_minutes":4012.99,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D066","commit_time":"2026-09-21T17:25","deploy_time":"2026-09-22T14:05","lead_time_minutes":1240.21,"failed":true,"failure_cause":"manifest_config_error","recovery_minutes":150,"incident_id":"INC-2"},{"id":"D067","commit_time":"2026-09-24T16:19","deploy_time":"2026-09-25T11:38","lead_time_minutes":1158.85,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D068","commit_time":"2026-09-25T12:08","deploy_time":"2026-09-28T10:24","lead_time_minutes":4215.78,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D069","commit_time":"2026-09-28T11:31","deploy_time":"2026-09-29T10:33","lead_time_minutes":1381.95,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D070","commit_time":"2026-09-29T11:18","deploy_time":"2026-09-29T13:18","lead_time_minutes":119.93,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D071","commit_time":"2026-10-01T12:17","deploy_time":"2026-10-01T15:30","lead_time_minutes":193.4,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null},{"id":"D072","commit_time":"2026-10-01T15:08","deploy_time":"2026-10-02T09:46","lead_time_minutes":1117.63,"failed":false,"failure_cause":null,"recovery_minutes":null,"incident_id":null}];
+if (typeof module !== 'undefined') module.exports = DEPLOYMENTS;
+
+</script>
+<script>const TEMPLATE_B64="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";</script>
+<script>
+/**
+ * Meridian SRE dashboard - interface layer.
+ *
+ * Reads three globals created by the other scripts:
+ *   SEED         (src/data.js)         services, SLOs, incidents, runbooks, postmortems
+ *   DEPLOYMENTS  (src/deployments.js)  deployment log for the DORA tab
+ *   Logic        (src/logic.js)        every calculation. This file only renders results.
+ *
+ * Sections: 1 helpers, 2 state, 3 shared components, 4 Incidents tab, 5 DORA tab,
+ *           6 Error budgets tab, 7 render, 8 event handlers.
+ *
+ * The whole page is re-rendered from `state` after every action (see render()).
+ * Buttons describe what they do with data attributes: data-a is the action name
+ * (a key of `actions` in section 8) and data-v is its value.
+ */
+(function () {
+  'use strict';
+
+  // ---------- 1. Helpers ----------
+
+  /** Escape text before putting it into an HTML string. Use it on everything from the data. */
+  const escapeHtml = (value) =>
+    String(value).replace(
+      /[&<>"]/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+    );
+  const oneDecimal = (n) => n.toFixed(1);
+
+  const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const TEMPLATE_PATH = 'templates/blameless-postmortem-template.docx';
+
+  /** Link to the blank postmortem template: the copy embedded by the build, else the file. */
+  const templateHref = () =>
+    typeof TEMPLATE_B64 !== 'undefined'
+      ? `data:${DOCX_MIME};base64,${TEMPLATE_B64}`
+      : TEMPLATE_PATH;
+
+  /** Smooth scrolling for deliberate moves, unless the user prefers reduced motion. */
+  const scrollBehavior = () =>
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto'
+      : 'smooth';
+  const scrollToElement = (el) =>
+    el && el.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+
+  // ---------- 2. State ----------
+
+  const STORAGE_KEY = 'meridian-sre';
+  let stored = {};
+  try {
+    stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch (e) {
+    // Storage can be blocked (for example in a sandboxed preview). Start with defaults.
+  }
+
+  const state = {
+    tab: 'incidents', // 'incidents' | 'dora' | 'budgets'
+    selectedId: 'INC-1', // incident shown in the investigation panel
+    logLevel: 'ALL',
+    logQuery: '',
+    selectedLog: null, // index of the log entry open in the detail pane
+    postmortemOpenFor: null, // incident id whose postmortem starter is expanded
+    viewer: null, // { title, text } for the read-only postmortem viewer
+    checked: stored.checked || {}, // runbook checklist progress, the only saved state
+  };
+
+  const saveChecklist = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ checked: state.checked }));
+    } catch (e) {
+      // Not saving is acceptable: progress simply resets on reload.
+    }
+  };
+
+  /** Incidents with their status detected from data (Active until a restore time exists). */
+  const getIncidents = () => SEED.incidents.map((i) => ({ ...i, status: Logic.status(i) }));
+  const summarizeBudgets = (incidents) => Logic.summarize({ ...SEED, incidents });
+
+  // ---------- 3. Shared components ----------
+
+  const PILL_ICONS = { crit: '▲', warn: '◆', ok: '●', acc: '◆' };
+
+  /** A status label. Always pairs color with an icon and text so color is never the only cue. */
+  function pill(text, tone, extraClass = '', tooltip = '') {
+    const title = tooltip ? `title="${escapeHtml(tooltip)}"` : '';
+    return `<span class="pill ${tone} ${extraClass}" ${title}>${PILL_ICONS[tone]} ${escapeHtml(text)}</span>`;
+  }
+
+  const incidentTone = (status) => (status === 'Active' ? 'crit' : 'ok');
+  const BUDGET_TONES = { Exhausted: 'crit', 'At risk': 'warn', Healthy: 'ok' };
+  const RATING_TONES = { Elite: 'ok', High: 'acc', Medium: 'warn', Low: 'crit' };
+  const isFiring = (incident) => Boolean(incident.alert && /Firing/.test(incident.alert.state));
+
+  /** Button that opens an incident in the investigation panel. */
+  const openIncidentButton = (id, label = id, primary = false) =>
+    `<button ${primary ? 'class="p" ' : ''}data-a="open" data-v="${id}">${label}</button>`;
+
+  /** Button that copies the text of the element with id `targetId`. */
+  const copyButton = (targetId, label, ariaLabel = '') =>
+    `<button data-a="copy" data-t="${targetId}"${ariaLabel ? ` aria-label="${escapeHtml(ariaLabel)}"` : ''}>${label}</button>`;
+
+  const TABS = [
+    ['incidents', 'Incidents'],
+    ['dora', 'DORA logs'],
+    ['budgets', 'Error budgets'],
+  ];
+  const tabBar = () =>
+    `<div class="tabs" role="tablist" aria-label="Dashboard sections">${TABS.map(
+      ([id, label]) =>
+        `<button role="tab" aria-selected="${state.tab === id}" data-a="tab" data-v="${id}">${label}</button>`
+    ).join('')}</div>`;
+
+  // ---------- 4. Incidents tab ----------
+
+  function overviewTiles(incidents, summaries) {
+    const active = incidents.filter(Logic.isActive);
+    const firing = active.filter(isFiring).length;
+    const atRisk = summaries.filter((s) => s.status !== 'Healthy').length;
+    const noAlertNote = active.length && !firing ? 'Active incidents have no firing alert' : '';
+    return `<section aria-label="Overview"><div class="grid">
+      <div><div class="mut">Overall health</div><div class="big">${active.length ? pill('Degraded', 'crit') : pill('Healthy', 'ok')}</div></div>
+      <div><div class="mut">Active incidents</div><div class="big">${active.length}</div></div>
+      <div><div class="mut">Alerts firing</div><div class="big">${firing}</div><div class="mut">${noAlertNote}</div></div>
+      <div><div class="mut">SLOs at risk or exhausted</div><div class="big">${atRisk} of ${summaries.length}</div></div>
+      <div><div class="mut">Data</div><div>Simulated seed data, no live feed</div></div></div></section>`;
+  }
+
+  function incidentRow(incident) {
+    const keyMetric = incident.metrics[0];
+    const alertCell = incident.alert
+      ? (isFiring(incident) ? pill('Firing', 'crit') + ' ' : '') + escapeHtml(incident.alert.name)
+      : 'None recorded';
+    const ongoing = incident.status === 'Active' ? ' (ongoing)' : '';
+    const selected = incident.id === state.selectedId ? 'sel ' : '';
+    return `<tr class="${selected}${incident.status.toLowerCase()}">
+      <td>${pill(incident.status, incidentTone(incident.status), 'st')}</td>
+      <td><b>${incident.id}</b> ${escapeHtml(incident.title)}<div class="mut">${escapeHtml(incident.service)}</div></td>
+      <td>${pill(incident.sev, incident.sev === 'SEV-1' ? 'crit' : 'warn')}</td>
+      <td>${incident.durationMin} min${ongoing}</td>
+      <td>${incident.sli}</td>
+      <td>${escapeHtml(keyMetric.name)}: ${keyMetric.value}${keyMetric.unit}</td>
+      <td>${alertCell}</td>
+      <td>${openIncidentButton(incident.id, 'Open', true)}</td></tr>`;
+  }
+
+  function incidentsTable(incidents) {
+    const activeFirst = [...incidents].sort((a, b) => Logic.isActive(b) - Logic.isActive(a));
+    return `<h2>Incidents in the last 7 days</h2><section><table><thead><tr><th>Status</th><th>Incident</th><th>Severity</th><th>Duration</th><th>SLI</th><th>Key metric</th><th>Alert</th><th></th></tr></thead>
+      <tbody>${activeFirst.map(incidentRow).join('')}</tbody></table></section>`;
+  }
+
+  /** Start-a-postmortem card. Only offered once the incident is Resolved (system restored). */
+  function postmortemCard(incident, summaries) {
+    const header = `<section><div class="row">${pill(incident.status, incidentTone(incident.status), 'st')}<span class="mut">${escapeHtml(incident.id)}</span></div>`;
+    if (incident.status !== 'Resolved') {
+      return `${header}<div class="mut">A postmortem can start once the system is restored. No restoration is recorded yet.</div></section>`;
+    }
+    const draft = Logic.draftStart(incident, summaries);
+    const isOpen = state.postmortemOpenFor === incident.id;
+    const draftCard = isOpen
+      ? `<div class="card"><h3>Summary</h3><p id="pm-sum">${escapeHtml(draft.summary)}</p>${copyButton('pm-sum', 'Copy summary')}
+      <h3>Impact</h3><ul id="pm-imp">${draft.impact.map((x) => `<li><b>${x.label}:</b> ${escapeHtml(x.text)}</li>`).join('')}</ul>${copyButton('pm-imp', 'Copy impact')}
+      <h3>Blank template</h3><a class="btn" download="blameless-postmortem-template.docx" href="${templateHref()}">Download blank postmortem template (.docx)</a></div>`
+      : '';
+    return `${header}<h3>Start blameless postmortem with AI</h3><div class="mut">Drafted by local rules from this incident's data. No external AI model is called.</div>
+      <div class="row"><button class="p" data-a="pmopen">${isOpen ? 'Hide draft' : 'Start blameless postmortem'}</button></div>${draftCard}</section>`;
+  }
+
+  function metricsTable(incident) {
+    const rows = incident.metrics.map((m) => {
+      const target = m.limit == null ? '-' : `under ${m.limit}${m.unit}`;
+      const verdict =
+        m.limit == null
+          ? '-'
+          : m.value <= m.limit
+            ? pill('Within target', 'ok')
+            : pill('Breaching', 'crit');
+      return `<tr><td>${escapeHtml(m.name)}</td><td>${m.value}${m.unit}</td><td>${target}</td><td>${verdict}</td></tr>`;
+    });
+    return `<table><thead><tr><th>Metric</th><th>Now</th><th>Target</th><th>State</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  }
+
+  function alertBlock(incident) {
+    if (!incident.alert) return '<p>No alert is recorded for this incident.</p>';
+    const { name, rule, state: alertState } = incident.alert;
+    return `<p><b>${escapeHtml(name)}</b>: ${escapeHtml(rule)}<br>State: ${escapeHtml(alertState)}</p>`;
+  }
+
+  /** Metrics, alert, detection method, and timeline for one incident. */
+  function evidencePanel(incident) {
+    const detection = incident.detection
+      ? escapeHtml(incident.detection)
+      : 'Unknown - requires human review.';
+    const timeline = incident.timeline.map(
+      ([time, event]) => `<li>${time} ${escapeHtml(event)}</li>`
+    );
+    return `<section><h3>Metrics</h3>${metricsTable(incident)}
+      <h3>Alert</h3>${alertBlock(incident)}
+      <h3>Detection</h3><p>${detection}</p>
+      <h3>Timeline</h3><ul>${timeline.join('')}</ul></section>`;
+  }
+
+  /** Log filter controls. The log rows are filled in separately by renderLogs(). */
+  function logsPanel() {
+    const options = ['ALL', 'ERROR', 'WARN', 'INFO']
+      .map((level) => `<option ${level === state.logLevel ? 'selected' : ''}>${level}</option>`)
+      .join('');
+    return `<section><h3>Logs (synthetic)</h3><div class="row"><select id="lvl" aria-label="Severity">${options}</select>
+      <input id="q" type="search" placeholder="Search messages" aria-label="Search logs" value="${escapeHtml(state.logQuery)}"></div><div id="logs"></div></section>`;
+  }
+
+  /** Table of who to call. Active incidents highlight the people to contact right now. */
+  function escalationTable(incident, runbook) {
+    const contacts = Logic.isActive(incident) ? incident.contact || [] : [];
+    const rows = runbook.escalation.map((person, k) => {
+      const contact = contacts.find((c) => c.role === person.role);
+      const roleExtra = contact ? `<div>${pill('Contact now', 'warn')}</div>` : '';
+      const whyExtra = contact ? `<div><b>Why:</b> ${escapeHtml(contact.why)}</div>` : '';
+      return `<tr class="${contact ? 'contact' : ''}"><td>${escapeHtml(person.level)}</td><td>${escapeHtml(person.role)}${roleExtra}</td><td>${escapeHtml(person.when)}${whyExtra}</td>
+        <td><span id="ec-${k}-n">${escapeHtml(person.name)}</span> ${copyButton(`ec-${k}-n`, 'Copy', `Copy name of ${person.name}`)}</td>
+        <td><span id="ec-${k}-e">${escapeHtml(person.email)}</span> ${copyButton(`ec-${k}-e`, 'Copy', `Copy email of ${person.name}`)}</td></tr>`;
+    });
+    const hint = contacts.length ? ' Highlighted rows are who to contact for this incident.' : '';
+    return `<h3>Escalation</h3><div class="mut">Names and email addresses are fake, for demonstration.${hint}</div>
+      <table><thead><tr><th>Level</th><th>Role</th><th>When</th><th>Name</th><th>Email</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  }
+
+  /** The runbook matching the incident's service, or an honest "none exists" message. */
+  function runbookPanel(incident) {
+    const runbook = incident.runbook && SEED.runbooks[incident.runbook];
+    if (!runbook) {
+      return `<section><h3>Runbook</h3><p>No runbook is registered for ${escapeHtml(incident.service)}. Proposed action: write one after this incident.</p></section>`;
+    }
+    const thresholds = runbook.thresholds.map(
+      ([alert, threshold, action]) =>
+        `<tr><td>${alert}</td><td>${threshold}</td><td>${action}</td></tr>`
+    );
+    const steps = runbook.steps.map((step, k) => {
+      const key = `${incident.id}:${k}`;
+      return `<div><label><input type="checkbox" data-ck="${key}" ${state.checked[key] ? 'checked' : ''}> ${k + 1}. ${escapeHtml(step)}</label></div>`;
+    });
+    return `<section><h3>Runbook</h3><b>${escapeHtml(runbook.title)}</b> <span class="mut">(${escapeHtml(runbook.service)})</span>
+      <table><thead><tr><th>Alert</th><th>Threshold</th><th>Action</th></tr></thead><tbody>${thresholds.join('')}</tbody></table>
+      <h3>First response</h3>${steps.join('')}
+      ${escalationTable(incident, runbook)}</section>`;
+  }
+
+  /** The incident's own postmortem plus others matched by shared tags (see Logic.related). */
+  function relatedPostmortems(incident) {
+    const own = SEED.postmortems.filter((p) => p.incident === incident.id);
+    const related = Logic.related(incident, SEED.postmortems);
+    const ownHtml = own.map(
+      (p) =>
+        `<p><b>${p.id}</b> is the postmortem for this incident. <button data-a="viewpm" data-v="${p.id}">Open</button></p>`
+    );
+    const relatedHtml = related.map(
+      (
+        r
+      ) => `<div class="card"><b>${r.pm.id}</b> ${escapeHtml(r.pm.title)} <span class="mut">${r.pm.date}, ${escapeHtml(r.pm.service)}</span>
+        <p><b>Observed:</b> ${escapeHtml(r.observed.join('; '))}.<br><b>Inferred (unconfirmed):</b> ${escapeHtml(r.inferred.join('; '))}.<br><span class="mut">${escapeHtml(r.caveat)} Summary produced by local rules, not an AI model.</span></p>
+        <button data-a="viewpm" data-v="${r.pm.id}">Open</button></div>`
+    );
+    const none = related.length ? '' : '<p>No other postmortems match this incident.</p>';
+    return `<section><h3>Related postmortems</h3>${ownHtml.join('')}${relatedHtml.join('')}${none}</section>`;
+  }
+
+  /** Everything about the selected incident, in the order an on-call engineer needs it. */
+  function investigation(incident, summaries) {
+    return `<h2 id="detail">${incident.id}: ${escapeHtml(incident.title)}</h2>${postmortemCard(incident, summaries)}
+      <div class="grid two">${evidencePanel(incident)}${logsPanel()}</div>
+      ${runbookPanel(incident)}${relatedPostmortems(incident)}`;
+  }
+
+  /** Fill the log table. Runs after render() because the filters re-draw only this part. */
+  function renderLogs(incident) {
+    const el = document.getElementById('logs');
+    if (!el || !incident) return;
+    const query = state.logQuery.toLowerCase();
+    const rows = incident.logs.filter(
+      (log) =>
+        (state.logLevel === 'ALL' || log.level === state.logLevel) &&
+        log.msg.toLowerCase().includes(query)
+    );
+    if (!rows.length) {
+      el.innerHTML = '<p>No log entries match these filters.</p>';
+      return;
+    }
+    const body = rows.map((log) => {
+      const index = incident.logs.indexOf(log);
+      return `<tr class="${state.selectedLog === index ? 'sel' : ''}"><td>${log.ts}</td><td>${log.level}</td>
+        <td><button data-a="log" data-v="${index}">${escapeHtml(log.service)}</button></td><td>${escapeHtml(log.msg)}</td></tr>`;
+    });
+    el.innerHTML = `<table class="log"><tbody>${body.join('')}</tbody></table>`;
+    const selected = incident.logs[state.selectedLog];
+    if (selected) {
+      const json = JSON.stringify({ incident: incident.id, ...selected }, null, 2);
+      el.innerHTML += `<pre class="log card">${escapeHtml(json)}</pre>`;
+    }
+  }
+
+  const postmortemList = () =>
+    SEED.postmortems
+      .map(
+        (p) =>
+          `<div>${p.id} ${escapeHtml(p.title)} (${p.date}) <button data-a="viewpm" data-v="${p.id}">Open</button></div>`
+      )
+      .join('');
+
+  const postmortemViewer = () =>
+    state.viewer
+      ? `<section id="draft"><h3>${escapeHtml(state.viewer.title)}</h3><textarea readonly aria-label="Postmortem text">${escapeHtml(state.viewer.text)}</textarea>
+        <div class="row"><button data-a="close">Close</button></div></section>`
+      : '';
+
+  function incidentsTab(incidents, summaries) {
+    const selected = incidents.find((i) => i.id === state.selectedId);
+    return `${overviewTiles(incidents, summaries)}${incidentsTable(incidents)}
+      ${selected ? investigation(selected, summaries) : ''}
+      <h2>Postmortems</h2><section id="pms">${postmortemList()}</section>${postmortemViewer()}`;
+  }
+
+  // ---------- 5. DORA tab ----------
+
+  /**
+   * Bar chart as inline SVG (no charting library). Null values leave a gap.
+   * `values` and `labels` line up by index; `title` is the accessible description.
+   */
+  function chart(values, labels, title) {
+    const W = 520,
+      H = 200; // overall size
+    const marginLeft = 46,
+      marginRight = 8,
+      marginTop = 10,
+      marginBottom = 28;
+    const plotHeight = H - marginTop - marginBottom;
+    const barSlot = (W - marginLeft - marginRight) / values.length;
+    const labelEvery = Math.ceil(values.length / 8); // keep x labels readable
+
+    // Round the top of the y axis up to 1, 2, 5, or 10 times a power of ten.
+    const largest = Math.max(...values.filter((v) => v != null), 1);
+    const magnitude = 10 ** Math.floor(Math.log10(largest));
+    const axisMax = [1, 2, 5, 10].find((k) => k >= largest / magnitude) * magnitude;
+
+    const gridLines = [0, axisMax / 2, axisMax].map((tick) => {
+      const y = marginTop + plotHeight - (tick / axisMax) * plotHeight;
+      return `<line x1="${marginLeft}" x2="${W - marginRight}" y1="${y}" y2="${y}" stroke="var(--line)"/>
+        <text x="${marginLeft - 6}" y="${y + 4}" text-anchor="end" style="fill:var(--mut);font-size:11px">${+tick.toFixed(1)}</text>`;
+    });
+    const bars = values.map((value, i) => {
+      const height = value == null ? 0 : (value / axisMax) * plotHeight;
+      const x = marginLeft + i * barSlot;
+      const bar = `<rect x="${x + barSlot * 0.15}" y="${marginTop + plotHeight - height}" width="${barSlot * 0.7}" height="${height}" rx="2" style="fill:var(--acc)"/>`;
+      const label =
+        i % labelEvery === 0
+          ? `<text x="${x + barSlot / 2}" y="${H - 8}" text-anchor="middle" style="fill:var(--mut);font-size:10.5px">${escapeHtml(labels[i])}</text>`
+          : '';
+      return bar + label;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(title)}" style="width:100%;height:auto"><title>${escapeHtml(title)}</title>${gridLines.join('')}${bars.join('')}</svg>`;
+  }
+
+  /** One DORA metric: heading with its rating, headline number, chart, and the rating bands. */
+  function doraCard({ title, headline, note, svg, metric, value }) {
+    const rating = Logic.rate(metric, value);
+    const bands = Logic.BANDS[metric].text;
+    return `<section><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h3 style="margin:0">${title}</h3>${pill(rating, RATING_TONES[rating], '', `Rating bands - ${bands}`)}</div>
+      <div class="big">${headline}</div><div class="mut">${note}</div>${svg}<div class="mut">Rating bands. ${bands}</div></section>`;
+  }
+
+  function deploymentRow(d) {
+    const incidentCell = d.incident_id ? openIncidentButton(d.incident_id) : '-';
+    return `<tr><td>${escapeHtml(d.id)}</td><td>${escapeHtml(d.deploy_time.replace('T', ' '))}</td><td>${oneDecimal(d.lead_time_minutes)}</td>
+      <td>${pill(d.failed ? 'Failed' : 'Succeeded', d.failed ? 'crit' : 'ok')}</td>
+      <td>${d.failure_cause ? escapeHtml(d.failure_cause.replace(/_/g, ' ')) : '-'}</td>
+      <td>${d.recovery_minutes != null ? oneDecimal(d.recovery_minutes) : '-'}</td><td>${incidentCell}</td></tr>`;
+  }
+
+  function doraTab() {
+    if (typeof DEPLOYMENTS === 'undefined' || !DEPLOYMENTS.length) {
+      return '<h2>DORA logs</h2><section>No deployment data is loaded. Run <code>npm run data</code> and then <code>npm run build</code>.</section>';
+    }
+    const weeks = Logic.weekly(DEPLOYMENTS);
+    const weekLabels = weeks.map((w) => w.week.slice(5)); // MM-DD
+    const metrics = Logic.dora(DEPLOYMENTS);
+    const failures = DEPLOYMENTS.filter((d) => d.failed);
+    const dates = DEPLOYMENTS.map((d) => d.deploy_time).sort();
+
+    const cards = [
+      {
+        title: 'Deployment frequency',
+        headline: `${oneDecimal(metrics.dfPerWeek)} per week`,
+        note: 'Deployments per week.',
+        svg: chart(
+          weeks.map((w) => w.count),
+          weekLabels,
+          'Deployments per week'
+        ),
+        metric: 'df',
+        value: metrics.dfPerWeek / 7, // the rating bands are per day
+      },
+      {
+        title: 'Lead time for changes',
+        headline: `${oneDecimal(metrics.medianLeadMin / 60)} hours median`,
+        note: 'Weekly median hours from commit to production. Median, because a few slow changes skew the average.',
+        svg: chart(
+          weeks.map((w) => (w.medianLeadMin == null ? null : w.medianLeadMin / 60)),
+          weekLabels,
+          'Median lead time in hours per week'
+        ),
+        metric: 'lead',
+        value: metrics.medianLeadMin,
+      },
+      {
+        title: 'Change failure rate',
+        headline: `${oneDecimal(metrics.cfr * 100)}% (${metrics.failed} of ${metrics.total})`,
+        note: "Percent of each week's deployments that failed. Elite teams stay under 5%; above 15% signals systemic problems.",
+        svg: chart(
+          weeks.map((w) => (w.cfr == null ? null : w.cfr * 100)),
+          weekLabels,
+          'Change failure rate percent per week'
+        ),
+        metric: 'cfr',
+        value: metrics.cfr,
+      },
+      {
+        title: 'Mean time to restore',
+        headline: `${oneDecimal(metrics.mttrMin)} min mean`,
+        note: `Minutes to recover from each failed deployment. INC-1 and INC-2 are two of the ${metrics.failed} failures.`,
+        svg: chart(
+          failures.map((d) => d.recovery_minutes),
+          failures.map((d) => d.id),
+          'Recovery minutes per failed deployment'
+        ),
+        metric: 'mttr',
+        value: metrics.mttrMin,
+      },
+    ];
+
+    return `<h2>DORA metrics</h2><div class="mut">Synthetic deployment log: ${DEPLOYMENTS.length} deployments from ${dates[0].slice(0, 10)} to ${dates[dates.length - 1].slice(0, 10)} (deployments_SYNTHETIC.csv), dated to match the Meridian incidents: INC-1 and INC-2 appear as failed deployments below. Weeks start on Monday, UTC; the last week may be partial.</div>
+      <div class="grid two" style="margin-top:12px">${cards.map(doraCard).join('')}</div>
+      <h2>30 most recent deployments</h2><section><table><thead><tr><th>Deployment</th><th>Deployed (UTC)</th><th>Lead time (min)</th><th>Result</th><th>Failure cause</th><th>Recovery (min)</th><th>Incident</th></tr></thead>
+      <tbody>${Logic.recent(DEPLOYMENTS, 30).map(deploymentRow).join('')}</tbody></table></section>`;
+  }
+
+  // ---------- 6. Error budgets tab ----------
+
+  function budgetCard(s) {
+    const tone = BUDGET_TONES[s.status];
+    const remaining =
+      s.remaining >= 0
+        ? `Remaining ${oneDecimal(s.remaining)} min (${oneDecimal(100 - s.pct * 100)}%).`
+        : `Over budget by ${oneDecimal(-s.remaining)} min.`;
+    const rows = s.rows.map(
+      (r) =>
+        `<tr><td>${openIncidentButton(r.id)} ${escapeHtml(r.title)}</td><td>${r.start.slice(0, 10)}</td><td>${r.durationMin} min</td><td>${Math.round(r.badShare * 100)}%</td><td>${oneDecimal(r.consumed)} min</td></tr>`
+    );
+    return `<section><b>${escapeHtml(s.service)}: ${escapeHtml(s.name)}</b> ${pill(s.status, tone)}
+      <div class="mut">SLO ${(s.slo * 100).toFixed(2)}% over 30 days. ${escapeHtml(s.def)}</div>
+      <p>Total budget ${oneDecimal(s.budget)} min. Consumed ${oneDecimal(s.used)} min (${oneDecimal(s.pct * 100)}%). ${remaining}</p>
+      <div class="rec ${tone}"><b>Recommendation</b>${escapeHtml(Logic.recommend(s.status))}</div>
+      <div class="bar" role="img" aria-label="${oneDecimal(s.pct * 100)}% consumed"><i class="${tone}" style="width:${Math.min(100, s.pct * 100)}%"></i></div>
+      <table><thead><tr><th>Incident</th><th>Date</th><th>Duration</th><th>Bad share</th><th>Consumed</th></tr></thead>
+      <tbody>${rows.join('') || '<tr><td colspan="5">No incidents consumed this budget.</td></tr>'}</tbody></table>
+      <div class="mut">Consumed = duration (overlap removed) x share of bad requests.</div></section>`;
+  }
+
+  function reliabilitySummary(incidents) {
+    const mttd = Logic.mttd(incidents);
+    const withDetection = incidents.filter((i) => i.detectedMin != null).length;
+    const resolved = incidents.filter((i) => i.status === 'Resolved').length;
+    return `<h2>Reliability summary</h2><section><div class="grid">
+      <div><div class="mut">MTTD</div><div class="big">${mttd == null ? 'n/a' : oneDecimal(mttd) + ' min'}</div><div class="mut">Mean of detection delay; ${withDetection} of ${incidents.length} incidents have a recorded detection time.</div></div>
+      <div><div class="mut">MTTR</div><div class="big">${oneDecimal(Logic.mttr(incidents))} min</div><div class="mut">Mean incident duration (start to restore), resolved incidents only (${resolved} of ${incidents.length}). 90-day charts are not built yet; the seed has only ${incidents.length} incidents.</div></div></div></section>`;
+  }
+
+  function budgetsTab(incidents, summaries) {
+    return `<h2>Error budgets (30-day window from ${SEED.window.start})</h2>
+      <div class="mut" style="margin-bottom:10px">Status: Healthy under 50% consumed, At risk from 50% to under 100%, Exhausted at 100% or more.</div>
+      <div class="grid two">${summaries.map(budgetCard).join('')}</div>${reliabilitySummary(incidents)}`;
+  }
+
+  // ---------- 7. Render ----------
+
+  /** Rebuild the page from state, then put the scroll position back so nothing jumps. */
+  function render() {
+    const scrollY = window.scrollY;
+    const incidents = getIncidents();
+    const summaries = summarizeBudgets(incidents);
+
+    let body;
+    if (state.tab === 'dora') body = doraTab();
+    else if (state.tab === 'budgets') body = budgetsTab(incidents, summaries);
+    else body = incidentsTab(incidents, summaries);
+
+    document.getElementById('app').innerHTML = tabBar() + body;
+    renderLogs(incidents.find((i) => i.id === state.selectedId));
+    window.scrollTo({ top: scrollY, behavior: 'instant' });
+  }
+
+  // ---------- 8. Event handlers ----------
+
+  /** Copy a button's target text to the clipboard, falling back to a hidden textarea. */
+  function copyText(button) {
+    const el = document.getElementById(button.dataset.t);
+    const text =
+      el.tagName === 'UL'
+        ? 'Impact\n' + [...el.children].map((li) => '• ' + li.innerText).join('\n')
+        : el.innerText;
+    const done = () => {
+      button.textContent = 'Copied';
+    };
+    const fallback = () => {
+      const box = document.createElement('textarea');
+      box.value = text;
+      document.body.appendChild(box);
+      box.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        button.textContent = 'Select the text and copy';
+      }
+      box.remove();
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  }
+
+  /** What each data-a action does. `value` is the button's data-v. */
+  const actions = {
+    /** Show an incident. From another tab, switch to Incidents and scroll to it. */
+    open(button, id) {
+      const previousTab = state.tab;
+      state.selectedId = id;
+      state.selectedLog = null;
+      state.tab = 'incidents';
+      render();
+      if (previousTab !== 'incidents') scrollToElement(document.getElementById('detail'));
+    },
+    tab(button, tab) {
+      state.tab = tab;
+      render();
+      window.scrollTo({ top: 0, behavior: scrollBehavior() });
+    },
+    pmopen() {
+      state.postmortemOpenFor =
+        state.postmortemOpenFor === state.selectedId ? null : state.selectedId;
+      render();
+    },
+    copy: copyText,
+    viewpm(button, id) {
+      const postmortem = SEED.postmortems.find((p) => p.id === id);
+      state.viewer = { title: postmortem.title, text: postmortem.body };
+      render();
+      scrollToElement(document.getElementById('draft'));
+    },
+    close() {
+      state.viewer = null;
+      render();
+    },
+    log(button, index) {
+      state.selectedLog = Number(index);
+      renderLogs(getIncidents().find((i) => i.id === state.selectedId));
+    },
+  };
+
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-a]');
+    if (!button) return;
+    const handler = actions[button.dataset.a];
+    if (handler) handler(button, button.dataset.v);
+  });
+
+  // The log filters only redraw the log table, so typing keeps focus in the search box.
+  document.addEventListener('input', (event) => {
+    if (event.target.id !== 'q' && event.target.id !== 'lvl') return;
+    if (event.target.id === 'q') state.logQuery = event.target.value;
+    else state.logLevel = event.target.value;
+    renderLogs(getIncidents().find((i) => i.id === state.selectedId));
+  });
+
+  document.addEventListener('change', (event) => {
+    if (!event.target.dataset.ck) return;
+    state.checked[event.target.dataset.ck] = event.target.checked;
+    saveChecklist();
+  });
+
+  render();
+})();
+
+</script>
+  </body>
+</html>

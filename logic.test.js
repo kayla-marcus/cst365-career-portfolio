@@ -1,0 +1,12 @@
+const test = require('node:test'), assert = require('node:assert'), L = require('../src/logic.js'), SEED = require('../src/data.js');
+const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-6, a + ' vs ' + b);
+test('budgets match the assignment', () => { close(L.budgetMinutes(0.999, 30), 43.2); close(L.budgetMinutes(0.99, 30), 432); });
+test('incident consumption', () => { const [p, a] = L.summarize(SEED);
+  close(p.used, 28.2); close(p.pct, 28.2 / 43.2); assert.equal(p.status, 'At risk'); close(a.used, 60); close(a.remaining, 372); assert.equal(p.rows.length, 1); });
+test('overlap is not double counted', () => { const r = L.effective([{ start: '2026-09-01T00:00:00Z', durationMin: 10 }, { start: '2026-09-01T00:05:00Z', durationMin: 10 }]); close(r[1].effMin, 5); });
+test('related postmortems', () => { const [i1, i2] = SEED.incidents;
+  assert.equal(L.related(i2, SEED.postmortems)[0].pm.id, 'PM-1'); assert.equal(L.related(i1, SEED.postmortems).length, 0); });
+test('draft marks missing evidence as unknown', () => { const sum = L.summarize(SEED), t = L.genPostmortem(SEED.incidents[1], sum);
+  assert.match(t, /Unknown - requires human review/); assert.match(t, /No matching runbook/); assert.ok(!/rollback/i.test(t)); });
+test('draft uses recorded evidence', () => { assert.match(L.genPostmortem(SEED.incidents[0], L.summarize(SEED)), /Customer support escalated/); });
+test('mttd excludes unknown detection', () => { close(L.mttd(SEED.incidents), 13); close(L.mttr(SEED.incidents), 98.5); });
